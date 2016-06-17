@@ -1,6 +1,7 @@
 from __future__ import unicode_literals
 
 from six import string_types
+import itertools
 from prompt_toolkit.completion import Completer, Completion
 
 __all__ = (
@@ -22,9 +23,10 @@ class WordCompleter(Completer):
         contain spaces. (Can not be used together with the WORD option.)
     :param match_middle: When True, match not only the start, but also in the
                          middle of the word.
+    :param cursor_positions optional iterable of cursor positions for the words
     """
     def __init__(self, words, ignore_case=False, meta_dict=None, WORD=False,
-                 sentence=False, match_middle=False):
+                 sentence=False, match_middle=False, cursor_positions=None):
         assert not (WORD and sentence)
 
         self.words = list(words)
@@ -33,6 +35,7 @@ class WordCompleter(Completer):
         self.WORD = WORD
         self.sentence = sentence
         self.match_middle = match_middle
+        self.cursor_positions = cursor_positions or itertools.repeat(0)
         assert all(isinstance(w, string_types) for w in self.words)
 
     def get_completions(self, document, complete_event):
@@ -55,7 +58,7 @@ class WordCompleter(Completer):
             else:
                 return word.startswith(word_before_cursor)
 
-        for a in self.words:
+        for a, p in zip(self.words, self.cursor_positions):
             if word_matches(a):
                 display_meta = self.meta_dict.get(a, '')
-                yield Completion(a, -len(word_before_cursor), display_meta=display_meta)
+                yield Completion(a, -len(word_before_cursor), display_meta=display_meta, cursor_position=p)
